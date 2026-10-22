@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pixelo</title>
+<meta name="description" content="Pixelo is a free, open source companion for macOS. Circle something on your screen, say what you want, and your AI gets the exact shape, cell or word you meant.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a scrolling product page. Airy centered hero → looping demo (what you draw / what your AI reads) → why → three steps → apps → quick start → FAQ → closing call.
+   Colors and type come from Pixelo's own Slate tokens (design/tokens). */
+:root {
+  --canvas: #F8F8F6;  --surface: #FFFFFF;  --sunken: #F7F7F5;  --hover: #EFEFEC;
+  --line: #ECEBE7;    --dot: #DEDDD8;
+  --text: #353A4A;    --text-2: #6B7080;   --muted: #A3A7B3;   --eye: #4A4F5E;
+  --primary-soft: #F1F2FF; --primary-fill: #E4E7FE; --primary: #8C95EC; --primary-ink: #3F49A8;
+  --paper-fill: #DCEEF8; --paper-line: #BFDDF0; --paper: #4A97C7; --paper-ink: #2A6788;
+  --window-fill: #DDF3E6; --window: #4FAE7E;
+  --danger-fill: #FEF1F2; --danger-ink: #8A2F40;
+  --stroke: #8C95EC;
+  --code-bg: #FBFBFA;
+  --halo: #FFFFFF;
+  --shadow: 0 0 0 1px rgba(53,58,74,.06), 0 1px 2px rgba(53,58,74,.05), 0 10px 30px -10px rgba(53,58,74,.14);
+  --shadow-sm: 0 0 0 1px rgba(53,58,74,.07), 0 1px 2px rgba(53,58,74,.05);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --wide: 1080px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #16181F; --surface: #1F222B; --sunken: #1B1E26; --hover: #262A34; --line: #2C303B; --dot: #2E323D;
+    --text: #ECEDF1; --text-2: #A3A7B3; --muted: #6B7080; --eye: #2A2E3A;
+    --primary-soft: #1E2140; --primary-fill: #C9CEFB; --primary-ink: #B4BBF7;
+    --paper-fill: #C4E2F4; --paper-line: #8FC2E2; --paper-ink: #9CCDEB;
+    --window-fill: #C6EAD4; --danger-fill: #3A2228; --danger-ink: #F2B3BE;
+    --code-bg: #1B1E26; --halo: #1F222B;
+    --shadow: 0 0 0 1px rgba(255,255,255,.06), 0 10px 30px -10px rgba(0,0,0,.55);
+    --shadow-sm: 0 0 0 1px rgba(255,255,255,.07);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --canvas: #16181F; --surface: #1F222B; --sunken: #1B1E26; --hover: #262A34; --line: #2C303B; --dot: #2E323D;
+  --text: #ECEDF1; --text-2: #A3A7B3; --muted: #6B7080; --eye: #2A2E3A;
+  --primary-soft: #1E2140; --primary-fill: #C9CEFB; --primary-ink: #B4BBF7;
+  --paper-fill: #C4E2F4; --paper-line: #8FC2E2; --paper-ink: #9CCDEB;
+  --window-fill: #C6EAD4; --danger-fill: #3A2228; --danger-ink: #F2B3BE;
+  --code-bg: #1B1E26; --halo: #1F222B;
+  --shadow: 0 0 0 1px rgba(255,255,255,.06), 0 10px 30px -10px rgba(0,0,0,.55);
+  --shadow-sm: 0 0 0 1px rgba(255,255,255,.07);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--canvas); color: var(--text); font: 400 16px/1.6 var(--font-sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; border-radius: 10px; }
+code, pre, kbd { font-family: var(--font-mono); }
+
+.wrap { width: 100%; max-width: var(--wide); margin: 0 auto; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+section { padding-block: 96px; }
+.eyebrow { font: 600 12px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--primary-ink); }
+h2 { margin: 12px 0 0; font: 700 clamp(28px, 4vw, 40px)/1.15 var(--font-display); letter-spacing: -.03em; text-wrap: balance; }
+.sub { margin: 14px 0 0; max-width: 36em; font-size: 17px; color: var(--text-2); text-wrap: pretty; }
+.center { text-align: center; }
+.center .sub { margin-left: auto; margin-right: auto; }
+
+/* ── nav */
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--canvas) 82%, transparent); backdrop-filter: saturate(1.4) blur(12px); -webkit-backdrop-filter: saturate(1.4) blur(12px); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 21; background: var(--canvas); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font: 600 17px/1 var(--font-display); letter-spacing: -.01em; }
+nav.links { display: flex; align-items: center; gap: 2px; }
+nav.links a { font: 500 14px/1 var(--font-sans); color: var(--text-2); padding: 9px 12px; border-radius: 999px; transition: color .2s, background .2s; }
+nav.links a:hover { color: var(--text); background: var(--hover); }
+nav.links a.gh { display: inline-flex; align-items: center; gap: 7px; color: var(--text); }
+nav.links svg { width: 16px; height: 16px; fill: currentColor; }
+
+/* ── hero */
+.hero { position: relative; padding-block: 72px 40px; text-align: center; }
+.hero::before { content: ""; position: absolute; inset: -80px 0 0; z-index: -1;
+  background-image: radial-gradient(var(--dot) 1.1px, transparent 1.3px); background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 35%, #000 25%, transparent 75%); mask-image: radial-gradient(ellipse 60% 70% at 50% 35%, #000 25%, transparent 75%); }
+.hero::after { content: ""; position: absolute; left: 50%; top: 120px; width: 760px; max-width: 100vw; height: 420px; transform: translateX(-50%); z-index: -1; background: radial-gradient(closest-side, var(--primary-soft), transparent); }
+.hero .stage { position: relative; width: 132px; height: 132px; margin: 0 auto 28px; }
+.hero .stage .pal { width: 100%; height: 100%; animation: bob 3.2s var(--ease) infinite; }
+.hero .stage .pal svg { width: 100%; height: 100%; overflow: visible; }
+.hero .hi { position: absolute; left: 118px; top: 14px; height: 28px; padding: 0 12px; display: inline-flex; align-items: center; border-radius: 999px 999px 999px 4px; background: var(--surface); box-shadow: var(--shadow); font: 500 13px/1 var(--font-sans); white-space: nowrap; animation: grow .5s .5s var(--ease) both; }
+.hero h1 { margin: 0 auto; max-width: 13em; font: 700 clamp(40px, 6.6vw, 68px)/1.04 var(--font-display); letter-spacing: -.04em; text-wrap: balance; }
+.hero h1 em { font-style: normal; color: var(--primary-ink); position: relative; white-space: nowrap; }
+.hero h1 em svg { position: absolute; left: -4%; top: -14%; width: 108%; height: 128%; overflow: visible; pointer-events: none; }
+.hero h1 em svg path { fill: none; stroke: var(--primary); stroke-width: 2.4; stroke-linecap: round; opacity: .55; stroke-dasharray: 600; stroke-dashoffset: 600; animation: draw 1.1s .5s var(--ease) forwards; }
+.hero .sub { margin: 22px auto 0; font-size: 19px; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 32px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 20px; border-radius: 999px; font: 600 15px/1 var(--font-sans); transition: transform .2s var(--ease), box-shadow .2s; }
+.btn:hover { transform: translateY(-1px); }
+.btn svg { width: 18px; height: 18px; }
+.btn.primary { background: var(--text); color: var(--canvas); }
+.btn.primary svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.btn.ghost { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.btn.ghost svg { fill: currentColor; }
+.meta { margin-top: 18px; font: 400 13px/1.5 var(--font-sans); color: var(--muted); }
+
+/* ── demo */
+.demo { padding-block: 32px 72px; }
+.demo-frame { position: relative; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 18px; align-items: stretch; }
+.win { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; min-width: 0; }
+.win .bar { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-bottom: 1px solid var(--line); font: 500 12px/1 var(--font-sans); color: var(--muted); }
+.win .bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.win .bar i + i { margin-left: -2px; }
+.win .bar span { margin-left: 8px; }
+.slide-wrap { position: relative; padding: 22px; background: var(--sunken); }
+.slide { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #FFFFFF; border-radius: 6px; box-shadow: 0 0 0 1px rgba(53,58,74,.08), 0 2px 8px -2px rgba(53,58,74,.12); padding: 6% 6% 0; color: #353A4A; }
+.slide h4 { margin: 0; font: 700 clamp(13px, 1.9vw, 21px)/1.2 var(--font-display); letter-spacing: -.01em; }
+.slide p { margin: 2% 0 0; font: 400 clamp(8px, 1vw, 11px)/1.4 var(--font-sans); color: #6B7080; }
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4%; margin-top: 6%; }
+.card { aspect-ratio: 1 / 1.05; border-radius: 8px; background: #F7F7F5; box-shadow: inset 0 0 0 1px #ECEBE7; padding: 10%; display: flex; flex-direction: column; justify-content: space-between; }
+.card b { font: 700 clamp(9px, 1.15vw, 13px)/1.2 var(--font-sans); }
+.card small { font: 400 clamp(7px, .85vw, 10px)/1.35 var(--font-sans); color: #6B7080; }
+.card .n { font: 600 clamp(7px, .8vw, 9px)/1 var(--font-mono); color: #A3A7B3; }
+.card.target { animation: paint 10s var(--ease) infinite; }
+.overlay { position: absolute; inset: 22px; pointer-events: none; }
+.overlay svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.overlay .loop { fill: none; stroke: var(--stroke); stroke-width: .6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: loop 10s var(--ease) infinite; }
+.badge { position: absolute; width: 24px; height: 24px; margin: -12px 0 0 -12px; border-radius: 50%; background: var(--primary); color: #FFFFFF; display: grid; place-items: center; font: 700 12px/1 var(--font-mono); box-shadow: 0 0 0 2px #FFFFFF; animation: badge 10s var(--ease) infinite; }
+.mini-pal { position: absolute; width: 42px; height: 42px; animation: palmove 10s var(--ease) infinite; }
+.mini-pal svg { width: 100%; height: 100%; overflow: visible; }
+.overlay svg.mini-cursor { position: absolute; inset: auto; width: 18px; height: 24px; animation: curmove 10s var(--ease) infinite; }
+.mini-cursor path { fill: #353A4A; stroke: #FFFFFF; stroke-width: 1.4; stroke-linejoin: round; }
+.say { position: absolute; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px 0 10px; border-radius: 4px 12px 12px 12px; background: rgba(255,255,255,.96); box-shadow: 0 0 0 1px rgba(53,58,74,.08), 0 8px 20px -8px rgba(53,58,74,.25); font: 500 13.5px/1 var(--font-sans); color: #353A4A; white-space: nowrap; animation: say 10s var(--ease) infinite; }
+.say .mic { width: 8px; height: 8px; border-radius: 50%; background: #F08A3E; box-shadow: 0 0 0 4px rgba(240,138,62,.18); }
+.say .typed { display: inline-block; overflow: hidden; white-space: nowrap; width: 0; animation: type 10s steps(14) infinite; }
+.say .typed span { color: #3F49A8; font-weight: 600; }
+.done-pill { position: absolute; height: 24px; padding: 0 10px; display: inline-flex; align-items: center; border-radius: 999px; background: #E4E7FE; color: #3F49A8; font: 600 12px/1 var(--font-sans); white-space: nowrap; animation: donepill 10s var(--ease) infinite; }
+
+.ai { display: flex; flex-direction: column; }
+.ai .body { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: var(--code-bg); }
+.msg { border-radius: 12px; padding: 12px 14px; font: 400 12.5px/1.65 var(--font-mono); background: var(--surface); box-shadow: var(--shadow-sm); overflow-x: auto; white-space: pre; color: var(--text); }
+.msg .t { color: var(--primary-ink); }
+.msg .s { color: var(--paper-ink); }
+.msg .k { color: var(--muted); }
+.msg.in { animation: msgin 10s var(--ease) infinite; }
+.reply { display: flex; align-items: flex-start; gap: 10px; font: 400 13px/1.5 var(--font-sans); color: var(--text-2); animation: replyin 10s var(--ease) infinite; }
+.reply .dot { flex: none; width: 22px; height: 22px; border-radius: 6px; background: var(--primary-fill); display: grid; place-items: center; color: #3F49A8; font: 700 11px/1 var(--font-mono); }
+.reply b { color: var(--text); font-weight: 600; }
+.caption { margin-top: 16px; text-align: center; font: 400 14px/1.5 var(--font-sans); color: var(--muted); }
+
+@keyframes curmove { 0% { left: 86%; top: 88%; } 10%, 100% { left: 62%; top: 74%; } }
+@keyframes palmove { 0% { left: 89%; top: 92%; } 10%, 100% { left: 65%; top: 78%; } }
+@keyframes loop { 0%, 10% { stroke-dashoffset: 1; opacity: 1; } 26% { stroke-dashoffset: 0; opacity: 1; } 92% { stroke-dashoffset: 0; opacity: 1; } 98%, 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes badge { 0%, 26% { transform: scale(0); opacity: 0; } 30% { transform: scale(1.15); opacity: 1; } 33%, 92% { transform: scale(1); opacity: 1; } 98%, 100% { transform: scale(1); opacity: 0; } }
+@keyframes say { 0%, 30% { opacity: 0; transform: translateY(4px); } 34%, 60% { opacity: 1; transform: none; } 64%, 100% { opacity: 0; transform: translateY(-4px); } }
+@keyframes type { 0%, 35% { width: 0; } 50%, 100% { width: 8.4em; } }
+@keyframes msgin { 0%, 58% { opacity: .25; transform: translateY(6px); } 64%, 96% { opacity: 1; transform: none; } 100% { opacity: .25; } }
+@keyframes replyin { 0%, 74% { opacity: 0; transform: translateY(6px); } 80%, 96% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes paint { 0%, 72% { background: #F7F7F5; box-shadow: inset 0 0 0 1px #ECEBE7; } 76%, 94% { background: #DCEEF8; box-shadow: inset 0 0 0 1px #BFDDF0; } 100% { background: #F7F7F5; box-shadow: inset 0 0 0 1px #ECEBE7; } }
+@keyframes donepill { 0%, 76% { opacity: 0; transform: scale(.6); } 80%, 94% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
+
+/* ── why */
+.why-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 44px; }
+.chat { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); padding: 22px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.chat h3 { margin: 0 0 4px; font: 600 13px/1 var(--font-sans); color: var(--muted); letter-spacing: .02em; display: flex; align-items: center; gap: 8px; }
+.chat h3 .tag { font: 600 11px/1 var(--font-mono); padding: 5px 8px; border-radius: 999px; letter-spacing: .04em; }
+.chat.bad h3 .tag { background: var(--danger-fill); color: var(--danger-ink); }
+.chat.good h3 .tag { background: var(--primary-soft); color: var(--primary-ink); }
+.bubble { max-width: 88%; padding: 10px 14px; border-radius: 14px; font-size: 14.5px; line-height: 1.5; }
+.bubble.me { align-self: flex-end; background: var(--sunken); border-bottom-right-radius: 4px; }
+.bubble.ai { align-self: flex-start; background: transparent; box-shadow: inset 0 0 0 1px var(--line); color: var(--text-2); border-bottom-left-radius: 4px; }
+.bubble code { font-size: 12.5px; color: var(--primary-ink); background: var(--primary-soft); padding: 1px 5px; border-radius: 5px; }
+.bubble .ring { display: inline-block; border: 2px solid var(--primary); border-radius: 999px; padding: 0 6px; margin: 0 1px; line-height: 1.35; }
+.chat .foot { margin-top: auto; padding-top: 6px; font: 500 13px/1.4 var(--font-sans); color: var(--muted); }
+
+/* ── steps */
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 44px; }
+.step { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); padding: 22px; min-width: 0; }
+.step .art { height: 120px; border-radius: 10px; background: var(--sunken); margin-bottom: 20px; position: relative; overflow: hidden; display: grid; place-items: center; }
+.step .art svg { overflow: visible; }
+.step .num { font: 600 12px/1 var(--font-mono); color: var(--primary-ink); }
+.step h3 { margin: 8px 0 6px; font: 600 19px/1.3 var(--font-display); letter-spacing: -.015em; }
+.step p { margin: 0; font-size: 15px; color: var(--text-2); }
+.step kbd, .keys kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 6px; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 1px 0 var(--line); font: 500 12px/1 var(--font-mono); color: var(--text); vertical-align: 1px; }
+.art .key { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 12px; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 3px 0 var(--line); font: 500 20px/1 var(--font-mono); color: var(--text); }
+.art .plus { margin: 0 8px; color: var(--muted); font: 400 18px/1 var(--font-sans); }
+.art .row { display: flex; align-items: center; }
+.art .tokens { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding: 0 12px; }
+.art .tokens span { font: 500 11.5px/1 var(--font-mono); padding: 6px 8px; border-radius: 6px; background: var(--surface); box-shadow: var(--shadow-sm); color: var(--text); }
+.art .tokens span.k { color: var(--primary-ink); background: var(--primary-soft); box-shadow: none; }
+
+/* ── apps: one scene per app, picked with tabs */
+.tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 40px 0 22px; }
+.tabs button { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px 0 8px; border: 0; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); color: var(--text-2); font: 500 14.5px/1 var(--font-sans); cursor: pointer; transition: background .2s, color .2s; }
+.tabs button:hover { color: var(--text); }
+.tabs button[aria-selected="true"] { background: var(--text); color: var(--canvas); }
+.tabs button span[data-figure] { width: 30px; height: 30px; }
+.tabs button span[data-figure] svg { width: 100%; height: 100%; overflow: visible; }
+.scene { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px; align-items: stretch; }
+.scene[hidden] { display: none; }
+.pane { position: relative; aspect-ratio: 4 / 3; background: var(--sunken); overflow: hidden; }
+.pane .ink { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.pane .ink path { fill: none; stroke: var(--stroke); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.scene.play .ink path { animation: draw 1.1s .15s var(--ease) forwards; }
+.scene .badge { animation: none; transform: scale(0); }
+.scene.play .badge { animation: pop .4s 1.1s var(--ease) forwards; }
+.side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.said { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); font-size: 15.5px; font-weight: 500; }
+.said .fig { width: 34px; height: 34px; flex: none; }
+.said .fig svg { width: 100%; height: 100%; overflow: visible; }
+.chip { display: inline-grid; place-items: center; width: 20px; height: 20px; margin: 0 2px; border-radius: 50%; background: var(--primary); color: #FFFFFF; font: 700 11px/1 var(--font-mono); vertical-align: 1px; }
+.lbl { margin: 6px 0 -4px; font: 600 11.5px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.side .msg { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.side .reply { animation: none; padding: 2px 2px 0; }
+.scene.play .side .msg, .scene.play .side .reply { animation: rise .5s 1.2s var(--ease) both; }
+.scene.play .side .reply { animation-delay: 1.5s; }
+.also { margin: 22px 0 0; text-align: center; font-size: 14.5px; color: var(--muted); }
+@keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* scene contents */
+.pslide { position: absolute; inset: 9% 6%; background: #FFFFFF; border-radius: 6px; box-shadow: 0 0 0 1px rgba(53,58,74,.08), 0 2px 8px -2px rgba(53,58,74,.12); }
+.pslide h4 { position: absolute; left: 7%; top: 9%; margin: 0; font: 700 clamp(12px, 1.6vw, 17px)/1.2 var(--font-display); color: #353A4A; }
+.photo { position: absolute; width: 25%; height: 40%; border-radius: 6px; transition: top .6s var(--ease); }
+.scene.play .photo { animation: settle .6s 2s var(--ease) forwards; }
+@keyframes settle { to { top: 42%; } }
+.sheet { position: absolute; inset: 6%; background: #FFFFFF; box-shadow: 0 0 0 1px rgba(53,58,74,.1); border-radius: 6px; display: grid; grid-template-columns: 9% 1.4fr 1fr 1fr 1fr 1fr; grid-template-rows: repeat(9, 1fr); font: 500 clamp(9px, 1vw, 12px)/1 var(--font-sans); color: #4A4F5E; overflow: hidden; }
+.sheet span { display: flex; align-items: center; padding: 0 7%; border-right: 1px solid #ECEBE7; border-bottom: 1px solid #ECEBE7; white-space: nowrap; overflow: hidden; }
+.sheet .h { background: #F8F8F6; color: #A3A7B3; font: 500 clamp(8px, .9vw, 11px)/1 var(--font-mono); justify-content: center; padding: 0; }
+.sheet .n { justify-content: flex-end; font-family: var(--font-mono); }
+.sheet b { font-weight: 600; color: #353A4A; }
+.scene.play .sheet .over { animation: over .4s 2s var(--ease) forwards; }
+.sheet .total { color: transparent; }
+.scene.play .sheet .total { animation: total .4s 2.2s var(--ease) forwards; }
+@keyframes over { to { background: #FEF1F2; color: #8A2F40; } }
+@keyframes total { to { color: #353A4A; background: #F1F2FF; } }
+.page { position: absolute; inset: 6% 14% 0; background: #FFFFFF; box-shadow: 0 0 0 1px rgba(53,58,74,.08); border-radius: 4px 4px 0 0; padding: 8% 9%; display: flex; flex-direction: column; gap: 5%; font: 400 clamp(9px, 1vw, 12px)/1.6 var(--font-sans); color: #6B7080; }
+.page h4 { margin: 0; font: 700 clamp(12px, 1.5vw, 16px)/1.3 var(--font-display); color: #353A4A; }
+.page p { margin: 0; }
+.page .target { position: relative; display: grid; color: #353A4A; }
+.page .target > span:not(.badge) { grid-area: 1 / 1; }
+.page .target .ink { inset: -14% -5%; width: 110%; height: 128%; }
+.page .target .badge { left: -4%; top: -6%; }
+.page .new { opacity: 0; }
+.scene.play .page .old { animation: textout .3s 2s forwards; }
+.scene.play .page .new { animation: textin .4s 2.3s forwards; }
+@keyframes textout { to { opacity: 0; } }
+@keyframes textin { to { opacity: 1; } }
+.map { position: absolute; inset: 0; }
+.map > svg { width: 100%; height: 100%; display: block; }
+.pin { position: absolute; width: 16px; height: 16px; margin: -16px 0 0 -8px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg) scale(0); background: #E46A5B; box-shadow: 0 0 0 2px #FFFFFF; }
+.scene.play .pin { animation: pin .35s var(--ease) forwards; }
+.scene.play .pin.p1 { animation-delay: 2s; }
+.scene.play .pin.p2 { animation-delay: 2.15s; }
+.scene.play .pin.p3 { animation-delay: 2.3s; }
+@keyframes pin { to { transform: rotate(-45deg) scale(1); } }
+.place { position: absolute; font: 600 clamp(8px, .9vw, 11px)/1 var(--font-sans); color: #4A4F5E; white-space: nowrap; }
+
+/* ── apps (cards, unused) */
+.apps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-top: 44px; }
+.app { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); padding: 20px 18px; min-width: 0; }
+.app .fig { width: 52px; height: 52px; margin-bottom: 14px; }
+.app .fig svg { width: 100%; height: 100%; overflow: visible; }
+.app h3 { margin: 0; font: 600 16px/1.3 var(--font-display); }
+.app p { margin: 6px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--text-2); }
+
+/* ── quick start */
+.qs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 40px; align-items: start; }
+.reqs { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 10px; }
+.reqs li { display: flex; gap: 10px; align-items: baseline; font-size: 15px; color: var(--text-2); }
+.reqs li::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); transform: translateY(-2px); }
+.reqs b { color: var(--text); font-weight: 600; }
+.install { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; min-width: 0; }
+.install .bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 10px 10px 16px; border-bottom: 1px solid var(--line); }
+.install .bar span { font: 500 12px/1 var(--font-sans); color: var(--muted); }
+.copy { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border: 0; border-radius: 999px; background: var(--sunken); color: var(--text-2); font: 500 12px/1 var(--font-sans); cursor: pointer; }
+.copy:hover { color: var(--text); }
+.copy svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.install pre { margin: 0; padding: 16px 18px 18px; overflow-x: auto; font: 400 13.5px/1.9 var(--font-mono); color: var(--text); }
+.install pre .p { color: var(--primary); user-select: none; margin-right: 10px; }
+.keys { margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 20px; font-size: 14px; color: var(--text-2); }
+.keys div { display: flex; align-items: center; gap: 10px; }
+
+/* ── faq */
+.faq { max-width: 760px; margin: 40px auto 0; display: grid; gap: 10px; }
+.faq details { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-sm); padding: 0 20px; }
+.faq summary { list-style: none; cursor: pointer; padding: 18px 0; font: 600 16px/1.4 var(--font-sans); display: flex; justify-content: space-between; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font: 400 20px/1 var(--font-sans); color: var(--muted); transition: transform .2s var(--ease); }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { margin: -4px 0 18px; color: var(--text-2); font-size: 15px; }
+
+/* ── closing */
+.closing { text-align: center; padding-block: 96px 120px; }
+.closing .stage { width: 84px; height: 84px; margin: 0 auto 22px; }
+.closing .stage svg { width: 100%; height: 100%; overflow: visible; }
+footer { border-top: 1px solid var(--line); }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-block: 22px 28px; font: 400 13px/1.5 var(--font-sans); color: var(--muted); }
+footer a:hover { color: var(--text); }
+footer nav { display: flex; gap: 18px; }
+
+/* companion figure */
+.ch .f { fill: var(--c-fill); stroke: var(--c-line); stroke-width: 1.6; stroke-linejoin: round; }
+.ch .eye { fill: var(--eye); transform-box: fill-box; transform-origin: center; transition: transform 80ms; }
+.ch .eyes { transition: transform 160ms var(--ease); }
+.ch .gl { fill: none; stroke: #6B7080; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ch .halo .gl { stroke: var(--halo); stroke-width: 6; }
+.shut .ch .eye { transform: scaleY(.1); }
+[data-hue="primary"] { --c-fill: var(--primary-fill); --c-line: var(--primary); }
+[data-hue="paper"]   { --c-fill: var(--paper-fill);   --c-line: var(--paper); }
+[data-hue="window"]  { --c-fill: var(--window-fill);  --c-line: var(--window); }
+[data-hue="slate"]   { --c-fill: #FFFFFF;             --c-line: #A3A7B3; }
+.slide-wrap .ch { --eye: #4A4F5E; --halo: #FFFFFF; }
+
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes grow { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; }
+  .card.target { background: #DCEEF8; }
+  .overlay .loop { stroke-dashoffset: 0; }
+  .hero h1 em svg path { stroke-dashoffset: 0; }
+  .say .typed { width: 8.4em; }
+  .pane .ink path { stroke-dashoffset: 0; }
+  .scene .badge { transform: none; }
+}
+
+@media (max-width: 900px) {
+  section { padding-block: 72px; }
+  .demo-frame, .why-grid, .qs { grid-template-columns: minmax(0, 1fr); }
+  .steps { grid-template-columns: minmax(0, 1fr); }
+  .apps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .scene { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .hero { padding-block: 48px 24px; }
+  .hero .stage { width: 104px; height: 104px; }
+  .hero .hi { left: 94px; }
+  nav.links a.hide-sm { display: none; }
+  .say { height: 28px; font-size: 12px; }
+  .keys { grid-template-columns: minmax(0, 1fr); }
+  .install pre { font-size: 12px; }
+  .tabs button { height: 40px; padding: 0 14px 0 6px; font-size: 13.5px; }
+  .side .msg { font-size: 11.5px; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Pixelo home"><span data-figure="" data-size="28"></span>Pixelo</a>
+    <nav class="links" aria-label="Main">
+      <a class="hide-sm" href="#how">How it works</a>
+      <a class="hide-sm" href="#apps">Apps</a>
+      <a class="hide-sm" href="#start">Quick start</a>
+      <a class="hide-sm" href="https://github.com/jhl72e/Pixelo/tree/stroke/main/docs">Docs</a>
+      <a class="gh" href="https://github.com/jhl72e/Pixelo">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="wrap">
+      <div class="stage" aria-hidden="true">
+        <div class="pal" id="hero"></div>
+        <span class="hi">Hi! Show me.</span>
+      </div>
+      <h1>Stop describing your screen. <em>Just point.<svg viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true"><path d="M30 8 C 90 -4, 196 6, 194 30 C 192 56, 80 60, 24 50 C -4 44, 2 14, 44 6"/></svg></em></h1>
+      <p class="sub">Pixelo is a tiny companion that lives next to your cursor. Circle something on a slide, a sheet or a doc, say what you want, and your AI gets exactly the thing you meant.</p>
+      <div class="actions">
+        <a class="btn primary" href="#start">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+          Get Pixelo
+        </a>
+        <a class="btn ghost" href="https://github.com/jhl72e/Pixelo">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          View on GitHub
+        </a>
+      </div>
+      <p class="meta">Free and open source · macOS · Works with Claude Code</p>
+    </div>
+  </div>
+
+  <div class="demo">
+    <div class="wrap">
+      <div class="demo-frame">
+        <div class="win" aria-label="Your screen: a slide in PowerPoint">
+          <div class="bar"><i></i><i></i><i></i><span>Q3 Plan.pptx · Slide 2</span></div>
+          <div class="slide-wrap">
+            <div class="slide">
+              <h4>Q3 roadmap</h4>
+              <p>Three tracks, one launch window</p>
+              <div class="cards">
+                <div class="card"><span class="n">01</span><div><b>Research</b><br><small>12 interviews, 3 themes</small></div></div>
+                <div class="card target"><span class="n">02</span><div><b>Design</b><br><small>New onboarding flow</small></div></div>
+                <div class="card"><span class="n">03</span><div><b>Launch</b><br><small>Beta to 500 teams</small></div></div>
+              </div>
+            </div>
+            <div class="overlay" aria-hidden="true">
+              <svg viewBox="0 0 100 56.25"><path class="loop" pathLength="1" d="M56 16 C 68 16, 72 24, 71 31 C 70 41, 60 46, 49 45.5 C 37 45, 29 39, 29.5 31 C 30 22, 38 16, 50 16.5 C 54 16.6, 58 17.5, 60 19"/></svg>
+              <span class="badge" style="left:31%; top:33%">1</span>
+              <span class="done-pill" style="left:46%; top:6%">Done!</span>
+              <svg class="mini-cursor" viewBox="0 0 20 26"><path d="M2 2 L2 21 L7 16.5 L10.5 24 L13.5 22.6 L10 15.2 L17 15.2 Z"/></svg>
+              <span class="mini-pal" data-figure="ppt"></span>
+              <span class="say" style="left:72%; top:80%"><i class="mic"></i><span class="typed">make <span>this</span> blue</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="win ai" aria-label="What your AI receives">
+          <div class="bar"><i></i><i></i><i></i><span>Claude Code</span></div>
+          <div class="body">
+<div class="msg in"><span class="t">&lt;bundle</span> <span class="k">n=</span><span class="s">"1-1"</span> <span class="k">host=</span><span class="s">"ppt"</span> <span class="k">slide=</span><span class="s">"2"</span><span class="t">&gt;</span>
+area [330, 150, 610, 420] containing <span class="s">"Design"</span>
+  <span class="s">"Design"</span> [352, 168, 596, 404]
+    rounded rectangle fill #F7F7F5
+<span class="t">&lt;/bundle&gt;</span>
+make <span class="t">&lt;bundle n="1-1"/&gt;</span> blue</div>
+            <div class="reply"><span class="dot">✓</span><span>Filled <b>“Design”</b> with #DCEEF8 on slide 2. One undo step.</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">What you draw, left. What your AI reads, right. No screenshots to guess from.</p>
+    </div>
+  </div>
+
+  <section id="why">
+    <div class="wrap center">
+      <span class="eyebrow">Why Pixelo</span>
+      <h2>Your AI can do the work.<br>It just can’t see what you mean.</h2>
+      <p class="sub">“Move this next to that” is how people talk about a screen. In a chat box, “this” and “that” are lost, so you end up writing directions instead of getting things done.</p>
+    </div>
+    <div class="wrap">
+      <div class="why-grid">
+        <div class="chat bad">
+          <h3><span class="tag">WITHOUT</span>Typing it out</h3>
+          <div class="bubble me">On slide 2, make the second card blue. The middle one, under the title.</div>
+          <div class="bubble ai">I changed “Research” to blue. Is that the one?</div>
+          <div class="bubble me">No, the one that says Design. And only the box, not the text.</div>
+          <p class="foot">Three messages for one click’s worth of change.</p>
+        </div>
+        <div class="chat good">
+          <h3><span class="tag">WITH PIXELO</span>Point and say it</h3>
+          <div class="bubble me">make <span class="ring">this</span> blue</div>
+          <div class="bubble ai">Filled <b>“Design”</b> on slide 2 with light blue. One undo step if you want it back.</div>
+          <p class="foot">Your circle becomes the shape’s real name, so there is nothing to guess.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" style="padding-top:24px">
+    <div class="wrap center">
+      <span class="eyebrow">How it works</span>
+      <h2>Call, point, hand it off</h2>
+    </div>
+    <div class="wrap">
+      <div class="steps">
+        <div class="step">
+          <div class="art" aria-hidden="true"><div class="row"><span class="key">⌘</span><span class="plus">+</span><span class="key">E</span></div></div>
+          <span class="num">Step 1</span>
+          <h3>Call Pixelo</h3>
+          <p>Press <kbd>⌘E</kbd> in PowerPoint, Excel, Word or your browser. Pixelo hops next to your cursor, dressed for that app.</p>
+        </div>
+        <div class="step">
+          <div class="art" aria-hidden="true">
+            <svg width="180" height="90" viewBox="0 0 180 90">
+              <rect x="10" y="14" width="70" height="56" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+              <rect x="100" y="14" width="70" height="56" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+              <path d="M96 22 C 120 4, 182 12, 176 46 C 172 78, 112 82, 100 64 C 90 50, 94 30, 112 18" fill="none" stroke="var(--primary)" stroke-width="2.4" stroke-linecap="round"/>
+              <circle cx="96" cy="16" r="9" fill="var(--primary)"/><text x="96" y="16.5" fill="#fff" font-family="ui-monospace, monospace" font-size="10" font-weight="700" text-anchor="middle" dominant-baseline="central">1</text>
+              <path d="M30 80 C 50 86, 70 86, 90 76" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 5"/>
+            </svg>
+          </div>
+          <span class="num">Step 2</span>
+          <h3>Point and talk</h3>
+          <p>Circle it, tap it or draw a path, then say what you want with <kbd>⌥</kbd>. Each mark gets a number, so “this” and “there” stay paired with your words.</p>
+        </div>
+        <div class="step">
+          <div class="art" aria-hidden="true"><div class="tokens"><span class="k">"Design"</span><span>slide 2</span><span class="k">B4:E7</span><span>paragraph 3</span><span class="k">word "revenue"</span><span>[330, 150]</span></div></div>
+          <span class="num">Step 3</span>
+          <h3>Hand it off</h3>
+          <p>Press <kbd>↵</kbd>. Your marks become shape names, cell ranges, words and coordinates in your AI’s chat. Its answer shows up as a card right where you pointed.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="apps" style="padding-top:24px">
+    <div class="wrap center">
+      <span class="eyebrow">Works where you work</span>
+      <h2>Same gesture, every app</h2>
+      <p class="sub">Pixelo reads each app in its own terms. Pick one to see what you draw, what you say, and what your AI actually receives.</p>
+    </div>
+    <div class="wrap">
+      <div class="tabs" role="tablist" aria-label="Apps">
+        <button role="tab" id="tab-ppt" aria-controls="sc-ppt" aria-selected="true" data-tab="ppt"><span data-figure="ppt"></span>PowerPoint</button>
+        <button role="tab" id="tab-excel" aria-controls="sc-excel" aria-selected="false" data-tab="excel" tabindex="-1"><span data-figure="excel"></span>Excel</button>
+        <button role="tab" id="tab-word" aria-controls="sc-word" aria-selected="false" data-tab="word" tabindex="-1"><span data-figure="word"></span>Word</button>
+        <button role="tab" id="tab-map" aria-controls="sc-map" aria-selected="false" data-tab="map" tabindex="-1"><span data-figure="web"></span>Maps</button>
+      </div>
+      <div class="scene play" id="sc-ppt" role="tabpanel" aria-labelledby="tab-ppt" data-scene="ppt">
+        <div class="win">
+          <div class="bar"><i></i><i></i><i></i><span>Pitch.pptx · Slide 3</span></div>
+          <div class="pane" aria-hidden="true">
+            <div class="pslide">
+              <h4>Meet the team</h4>
+              <span class="photo" style="left:7%;top:42%;background:#DCEEF8"></span>
+              <span class="photo" style="left:37.5%;top:34%;background:#DDF3E6"></span>
+              <span class="photo" style="left:68%;top:46%;background:#E4E7FE"></span>
+            </div>
+            <svg class="ink" viewBox="0 0 400 300"><path pathLength="1" d="M58 160 C 120 136, 200 150, 262 150 C 300 150, 330 160, 348 168 M332 154 L 350 168 L 330 178"/></svg>
+            <span class="badge" style="left:14%;top:53%">1</span>
+          </div>
+        </div>
+        <div class="side">
+          <div class="said"><span class="fig" data-figure="ppt"></span><span>line <span class="chip">1</span> up, same gap</span></div>
+          <span class="lbl">What your AI gets</span>
+<div class="msg"><span class="t">&lt;bundle</span> <span class="k">n=</span><span class="s">"1-1"</span> <span class="k">host=</span><span class="s">"ppt"</span> <span class="k">doc=</span><span class="s">"Pitch.pptx"</span> <span class="k">slide=</span><span class="s">"3"</span><span class="t">&gt;</span>
+path from <span class="s">"Photo 1"</span> (130, 300) to <span class="s">"Photo 3"</span> (810, 316)
+  <span class="s">"Photo 1"</span> [72, 228, 312, 444] picture
+  <span class="s">"Photo 2"</span> [360, 184, 600, 400] picture
+  <span class="s">"Photo 3"</span> [648, 252, 888, 468] picture
+<span class="t">&lt;/bundle&gt;</span>
+line <span class="t">&lt;bundle n="1-1"/&gt;</span> up, same gap</div>
+          <div class="reply"><span class="dot">✓</span><span>Lined up all three photos at 228 pt, 48 pt apart.</span></div>
+        </div>
+      </div>
+      <div class="scene" id="sc-excel" role="tabpanel" aria-labelledby="tab-excel" data-scene="excel" hidden>
+        <div class="win">
+          <div class="bar"><i></i><i></i><i></i><span>Budget.xlsx · Q3</span></div>
+          <div class="pane" aria-hidden="true">
+            <div class="sheet"><span class="h"></span><span class="h">A</span><span class="h">B</span><span class="h">C</span><span class="h">D</span><span class="h">E</span><span class="h">1</span><span><b>Item</b></span><span><b>Team</b></span><span><b>Month</b></span><span class="n"><b>Budget</b></span><span class="n"><b>Actual</b></span><span class="h">2</span><span>Venue</span><span>Ops</span><span>Sep</span><span class="n">1,500</span><span class="n">1,200</span><span class="h">3</span><span>Design</span><span>Brand</span><span>Sep</span><span class="n">3,000</span><span class="n over">3,450</span><span class="h">4</span><span>Print</span><span>Brand</span><span>Sep</span><span class="n">1,000</span><span class="n">980</span><span class="h">5</span><span>Staff</span><span>Ops</span><span>Sep</span><span class="n">2,500</span><span class="n">2,100</span><span class="h">6</span><span>Ads</span><span>Growth</span><span>Sep</span><span class="n">4,000</span><span class="n over">4,300</span><span class="h">7</span><span>Food</span><span>Ops</span><span>Sep</span><span class="n">800</span><span class="n">760</span><span class="h">8</span><span></span><span></span><span></span><span class="n total">Total</span><span class="n total">12,790</span></div>
+            <svg class="ink" viewBox="0 0 400 300"><path pathLength="1" d="M352 74 C 380 72, 388 90, 386 140 C 386 205, 384 258, 352 258 C 320 258, 312 205, 314 140 C 314 96, 320 74, 344 70"/></svg>
+            <span class="badge" style="left:97%;top:50%">1</span>
+          </div>
+        </div>
+        <div class="side">
+          <div class="said"><span class="fig" data-figure="excel"></span><span>total <span class="chip">1</span> and flag what’s over budget</span></div>
+          <span class="lbl">What your AI gets</span>
+<div class="msg"><span class="t">&lt;bundle</span> <span class="k">n=</span><span class="s">"1-1"</span> <span class="k">host=</span><span class="s">"excel"</span> <span class="k">book=</span><span class="s">"Budget.xlsx"</span> <span class="k">sheet=</span><span class="s">"Q3"</span><span class="t">&gt;</span>
+area E2:E7 (6×1)
+  E2:E7 = 1200 | 3450 | 980 | 2100 | 4300 | 760
+  above (row 1): <span class="s">Actual</span>
+  left (column D): 1500, 3000, 1000, 2500, …
+<span class="t">&lt;/bundle&gt;</span>
+total <span class="t">&lt;bundle n="1-1"/&gt;</span> and flag what’s over budget</div>
+          <div class="reply"><span class="dot">✓</span><span>Put <b>=SUM(E2:E7)</b> in E8 and marked E3 and E6, which are over budget.</span></div>
+        </div>
+      </div>
+      <div class="scene" id="sc-word" role="tabpanel" aria-labelledby="tab-word" data-scene="word" hidden>
+        <div class="win">
+          <div class="bar"><i></i><i></i><i></i><span>Proposal.docx</span></div>
+          <div class="pane" aria-hidden="true">
+            <div class="page">
+              <h4>Project summary</h4>
+              <p>We propose a six-week pilot with two partner schools. Teachers will try the tool in daily lessons and share weekly feedback.</p>
+              <p class="target"><span class="old">In the event that the results of the pilot turn out to be positive in nature, it is our intention to proceed with an expansion of the program to additional schools.</span><span class="new">If the pilot works, we will expand to more schools.</span>
+                <svg class="ink" viewBox="0 0 200 60" preserveAspectRatio="none"><path pathLength="1" d="M30 4 C 110 -2, 198 4, 197 28 C 196 54, 110 60, 40 56 C 6 53, 2 30, 6 18 C 9 8, 20 4, 44 3"/></svg>
+                <span class="badge">1</span></p>
+              <p>The budget covers devices, training, and one part-time coordinator.</p>
+            </div>
+          </div>
+        </div>
+        <div class="side">
+          <div class="said"><span class="fig" data-figure="word"></span><span>make <span class="chip">1</span> shorter, same meaning</span></div>
+          <span class="lbl">What your AI gets</span>
+<div class="msg"><span class="t">&lt;bundle</span> <span class="k">n=</span><span class="s">"1-1"</span> <span class="k">host=</span><span class="s">"word"</span> <span class="k">doc=</span><span class="s">"Proposal.docx"</span> <span class="k">page=</span><span class="s">"1"</span><span class="t">&gt;</span>
+area [96, 236, 500, 300] containing paragraph 3
+  paragraph 3 <span class="s">"In the event that the results of the pil…"</span>
+    chars 312-468
+<span class="t">&lt;/bundle&gt;</span>
+make <span class="t">&lt;bundle n="1-1"/&gt;</span> shorter, same meaning</div>
+          <div class="reply"><span class="dot">✓</span><span>Rewrote paragraph 3: <b>“If the pilot works, we will expand to more schools.”</b></span></div>
+        </div>
+      </div>
+      <div class="scene" id="sc-map" role="tabpanel" aria-labelledby="tab-map" data-scene="map" hidden>
+        <div class="win">
+          <div class="bar"><i></i><i></i><i></i><span>map.naver.com</span></div>
+          <div class="pane" aria-hidden="true">
+            <div class="map">
+              <svg viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+                <rect width="400" height="300" fill="#E9EFE7"/>
+                <path d="M0 236 C 120 214, 230 262, 400 222 L400 300 L0 300 Z" fill="#CFE3F2"/>
+                <rect x="34" y="34" width="110" height="74" rx="8" fill="#D6E9CF"/>
+                <rect x="250" y="168" width="90" height="38" rx="6" fill="#D6E9CF"/>
+                <path d="M0 150 H400 M190 0 V300 M0 70 L400 118 M300 0 L262 300" stroke="#FFFFFF" stroke-width="9" fill="none"/>
+                <path d="M0 150 H400 M190 0 V300" stroke="#F5D88A" stroke-width="4" fill="none"/>
+              </svg>
+              <span class="place" style="left:12%;top:24%">서울숲</span>
+              <span class="pin p1" style="left:63%;top:28%"></span>
+              <span class="pin p2" style="left:71%;top:36%"></span>
+              <span class="pin p3" style="left:62%;top:43%"></span>
+            </div>
+            <svg class="ink" viewBox="0 0 400 300"><path pathLength="1" d="M232 74 C 268 48, 330 56, 330 98 C 330 140, 280 148, 248 136 C 220 124, 214 92, 244 70"/></svg>
+            <span class="badge" style="left:56%;top:20%">1</span>
+          </div>
+        </div>
+        <div class="side">
+          <div class="said"><span class="fig" data-figure="web"></span><span>quiet cafés around <span class="chip">1</span>, open now?</span></div>
+          <span class="lbl">What your AI gets</span>
+<div class="msg"><span class="t">&lt;bundle</span> <span class="k">n=</span><span class="s">"1-1"</span> <span class="k">host=</span><span class="s">"naver"</span> <span class="k">zoom=</span><span class="s">"17"</span><span class="t">&gt;</span>
+area [127.0431, 37.5446, 127.0462, 37.5461]
+  containing <span class="s">"성수 카페거리"</span>, <span class="s">"뚝섬역"</span>
+  <span class="s">"성수 카페거리"</span> [127.0446, 37.5451, 127.0450, 37.5455]
+  <span class="s">"뚝섬역"</span> [127.0453, 37.5448, 127.0457, 37.5452]
+<span class="t">&lt;/bundle&gt;</span>
+quiet cafés around <span class="t">&lt;bundle n="1-1"/&gt;</span>, open now?</div>
+          <div class="reply"><span class="dot">✓</span><span>Found 3 quiet cafés inside your circle that are open now.</span></div>
+        </div>
+      </div>
+      <p class="also">Also in any web page through the Chrome extension, and in Blender, with an outfit for each.</p>
+    </div>
+  </section>
+
+  <section id="start" style="padding-top:24px">
+    <div class="wrap">
+      <div class="qs">
+        <div>
+          <span class="eyebrow">Quick start</span>
+          <h2>Running in three commands</h2>
+          <ul class="reqs">
+            <li><span><b>macOS</b> with Accessibility permission for your terminal</span></li>
+            <li><span><b>Node.js 23.6+</b></span></li>
+            <li><span><b>Claude Code</b> or another AI chat that speaks MCP</span></li>
+            <li><span>Optional: an <b>ElevenLabs</b> key for voice</span></li>
+          </ul>
+        </div>
+        <div>
+          <div class="install" role="group" aria-label="Install">
+            <div class="bar">
+              <span>From source</span>
+              <button class="copy" id="copy" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>
+                <span>Copy</span>
+              </button>
+            </div>
+<pre id="cmd"><span class="p">$</span>git clone https://github.com/jhl72e/Pixelo.git
+<span class="p">$</span>cd Pixelo &amp;&amp; npm install &amp;&amp; npm run dev
+<span class="p">$</span>claude mcp add --transport http pixelo http://localhost:9340/mcp</pre>
+          </div>
+          <div class="keys" aria-label="Shortcuts">
+            <div><kbd>⌘E</kbd>Call Pixelo</div>
+            <div><kbd>⌥</kbd>Talk</div>
+            <div><kbd>↵</kbd>Hand it off</div>
+            <div><kbd>⌘⇧E</kbd>Open the chat</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" style="padding-top:24px">
+    <div class="wrap center">
+      <span class="eyebrow">FAQ</span>
+      <h2>Questions</h2>
+    </div>
+    <div class="wrap">
+      <div class="faq">
+        <details open>
+          <summary>What is Pixelo?</summary>
+          <p>A pointing companion for your AI. It sits next to your cursor, turns your circles, taps and paths into the names and coordinates your app uses, and drops them into your AI’s chat together with what you said.</p>
+        </details>
+        <details>
+          <summary>Does Pixelo edit my files?</summary>
+          <p>No. Your AI does the editing with its own tools, such as AppleScript for Office. Pixelo only reads the screen and tells your AI what you pointed at, so you can undo every change in the app as usual.</p>
+        </details>
+        <details>
+          <summary>Which AI does it work with?</summary>
+          <p>Claude Code is the main path, connected through MCP. Pixelo can also type into the Claude desktop app and the Claude panel in PowerPoint.</p>
+        </details>
+        <details>
+          <summary>What leaves my Mac?</summary>
+          <p>Your marks and a snapshot of the marked screen go to the AI chat you picked. Voice uses ElevenLabs with your own key, only while you are talking. Nothing else is uploaded.</p>
+        </details>
+        <details>
+          <summary>Does it cost anything?</summary>
+          <p>Pixelo is free and open source. You only pay for the AI you already use.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <div class="closing">
+    <div class="wrap">
+      <div class="stage" data-figure="" aria-hidden="true"></div>
+      <h2>Point at your first thing</h2>
+      <div class="actions">
+        <a class="btn primary" href="#start">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+          Get Pixelo
+        </a>
+        <a class="btn ghost" href="https://github.com/jhl72e/Pixelo/tree/stroke/main/docs">Read the docs</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Pixelo · a little helper on your screen</span>
+    <nav aria-label="Footer">
+      <a href="https://github.com/jhl72e/Pixelo">GitHub</a>
+      <a href="https://github.com/jhl72e/Pixelo/tree/stroke/main/docs">Docs</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+// The companion, drawn from the same geometry as ui/outfit.ts in the Pixelo repo.
+(function () {
+  const g24 = (d) => `<g transform="scale(.5) translate(-12 -12)"><path class="gl" d="${d}"/></g>`;
+  const OUTFIT = {
+    "": { hue: "primary", glyph: "" },
+    web: { hue: "window", glyph: "" },
+    ppt: { hue: "paper", glyph: g24("M2 3h20 M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3 M7 21l5-5 5 5") },
+    excel: { hue: "paper", glyph: g24("M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M3 9h18 M3 15h18 M9 9v12 M15 9v12") },
+    word: { hue: "paper", glyph: g24("M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z M14 2v4a2 2 0 0 0 2 2h4 M10 9H8 M16 13H8 M16 17H8") },
+    blender: { hue: "slate", glyph: g24("M12 2 L21 7 V17 L12 22 L3 17 V7 Z M3 7 L12 12 L21 7 M12 12 V22") },
+  };
+  const BODY = '<path class="f" d="M19 30 L19 52.5 Q19 58 24.5 58 Q30 58 30 52.5 L30 45.9 A17 17 0 1 0 19 30 Z"/>';
+  const EYES = '<g class="eyes">' + [31.3, 40.7].map((x) => `<ellipse class="eye" cx="${x}" cy="29" rx="2.4" ry="3.6"/>`).join("") + "</g>";
+  const figure = (host) => {
+    const o = OUTFIT[host] || OUTFIT[""];
+    const icon = o.glyph ? `<g transform="translate(51 48) scale(1.9)"><g class="halo">${o.glyph}</g>${o.glyph}</g>` : "";
+    return `<svg class="ch" data-hue="${o.hue}" viewBox="0 0 64 64">${BODY}${EYES}${icon}</svg>`;
+  };
+  document.querySelectorAll("[data-figure]").forEach((el) => {
+    el.innerHTML = figure(el.dataset.figure);
+    const s = el.querySelector("svg"), n = el.dataset.size;
+    if (n) { s.style.width = n + "px"; s.style.height = n + "px"; }
+  });
+  const hero = document.getElementById("hero");
+  hero.innerHTML = figure("");
+
+  // every companion looks at the pointer; the hero one blinks now and then
+  const all = [...document.querySelectorAll(".ch")];
+  let target = null, raf = 0;
+  const look = () => {
+    for (const s of all) {
+      const r = s.getBoundingClientRect(); if (!r.width) continue;
+      const cx = r.left + r.width * .56, cy = r.top + r.height * .45;
+      const t = target || { x: cx - 40, y: cy + 60 };
+      const dx = t.x - cx, dy = t.y - cy, d = Math.hypot(dx, dy) || 1;
+      s.querySelector(".eyes").style.transform = `translate(${(dx / d * 1.6).toFixed(2)}px, ${(dy / d * 1.2).toFixed(2)}px)`;
+    }
+  };
+  const soon = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; look(); }); };
+  addEventListener("pointermove", (e) => { target = { x: e.clientX, y: e.clientY }; soon(); }, { passive: true });
+  addEventListener("scroll", soon, { passive: true });
+  addEventListener("resize", soon);
+  look();
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    setInterval(() => { hero.classList.add("shut"); setTimeout(() => hero.classList.remove("shut"), 140); }, 4200);
+  }
+
+  // app tabs: replay the scene each time it opens
+  const tabs = [...document.querySelectorAll("[data-tab]")];
+  const pick = (b) => {
+    tabs.forEach((x) => { const on = x === b; x.setAttribute("aria-selected", on); x.tabIndex = on ? 0 : -1; });
+    document.querySelectorAll("[data-scene]").forEach((sc) => {
+      const on = sc.dataset.scene === b.dataset.tab;
+      sc.hidden = !on; sc.classList.remove("play");
+      if (on) { void sc.offsetWidth; sc.classList.add("play"); }
+    });
+    soon();
+  };
+  tabs.forEach((b, i) => {
+    b.addEventListener("click", () => pick(b));
+    b.addEventListener("keydown", (e) => {
+      const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (d) { const n = tabs[(i + d + tabs.length) % tabs.length]; n.focus(); pick(n); }
+    });
+  });
+  // start the first scene when it scrolls into view
+  const first = document.getElementById("sc-ppt");
+  first.classList.remove("play");
+  new IntersectionObserver((es, io) => { if (es[0].isIntersecting) { first.classList.add("play"); io.disconnect(); } }, { threshold: .4 }).observe(first);
+
+  // copy the install commands
+  const btn = document.getElementById("copy"), label = btn.querySelector("span");
+  const text = "git clone https://github.com/jhl72e/Pixelo.git\ncd Pixelo && npm install && npm run dev\nclaude mcp add --transport http pixelo http://localhost:9340/mcp";
+  btn.addEventListener("click", () => {
+    const done = () => { label.textContent = "Copied"; setTimeout(() => (label.textContent = "Copy"), 1600); };
+    const fallback = () => { const r = document.createRange(); r.selectNodeContents(document.getElementById("cmd")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); label.textContent = "Selected"; };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+  });
+})();
+</script>
+</body>
+</html>
